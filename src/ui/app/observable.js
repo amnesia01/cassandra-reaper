@@ -191,7 +191,6 @@ export const updateRepairIntensityResult = updateRepairIntensitySubject.map(repa
   }).promise());
 }).share();
 
-
 export const repairs = Rx.Observable.merge(
     Rx.Observable.timer(0, POLLING_INTERVAL).map(t => Rx.Observable.just({})),
     addRepairResult,
@@ -200,7 +199,9 @@ export const repairs = Rx.Observable.merge(
     updateRepairIntensityResult
   ).map(s =>
     s.flatMap(t => Rx.Observable.fromPromise($.ajax({
-        url: `${URL_PREFIX}/repair_run`
+        url: `${URL_PREFIX}/repair_run`,
+        method: 'GET',
+        data: { state: 'NOT_STARTED', cluster: s.currentCluster }
       }).promise())
     ).map(arr=>arr.reverse())
 );

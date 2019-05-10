@@ -34,7 +34,6 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -653,29 +652,39 @@ public final class RepairRunResource {
 
     try {
       final List<RepairRunStatus> runStatuses = Lists.newArrayList();
-      final Set desiredStates = splitStateParam(state);
+      final Set<String> desiredStates = splitStateParam(state);
       if (desiredStates == null) {
         return Response.status(Response.Status.BAD_REQUEST).build();
       }
 
-      Collection<Cluster> clusters;
+      Collection<Cluster> clusters = Sets.newHashSet();
       if (cluster.isPresent()) {
-        clusters = Collections.singleton(context.storage.getCluster(cluster.get()).get());
-      } else {
-        clusters = context.storage.getClusters();
-      }
+        clusters.add(context.storage.getCluster(cluster.get()).get());
+      } else if (1 == desiredStates.size()) {
+        RunState desiredState = RunState.valueOf(desiredStates.iterator().next());
+        Collection<RepairRun> runs = context.storage.getRepairRunsWithState(desiredState);
 
-
-      for (final Cluster clstr : clusters) {
-        Collection<RepairRun> runs = context.storage.getRepairRunsForCluster(clstr.getName(), Optional.empty());
         runStatuses.addAll(
-            (List<RepairRunStatus>) getRunStatuses(runs, desiredStates)
+            getRunStatuses(runs, desiredStates)
                 .stream()
-                .filter((run) -> !keyspace.isPresent()
-                    || ((RepairRunStatus)run).getKeyspaceName().equals(keyspace.get()))
+                .filter(run -> !keyspace.isPresent() || run.getKeyspaceName().equals(keyspace.get()))
                 .collect(Collectors.toList()));
+      } else {
+        LOG.warn("Calling /repair_run without state or cluster query params is overly expensive");
+        clusters.addAll(context.storage.getClusters());
       }
 
+      if (runStatuses.isEmpty()) {
+        for (final Cluster clstr : clusters) {
+          Collection<RepairRun> runs = context.storage.getRepairRunsForCluster(clstr.getName(), Optional.empty());
+
+          runStatuses.addAll(
+              getRunStatuses(runs, desiredStates)
+                  .stream()
+                  .filter(run -> !keyspace.isPresent() || run.getKeyspaceName().equals(keyspace.get()))
+                  .collect(Collectors.toList()));
+        }
+      }
       return Response.ok().entity(runStatuses).build();
     } catch (ReaperException e) {
       LOG.error("Failed listing cluster statuses", e);
@@ -703,7 +712,7 @@ public final class RepairRunResource {
     return runStatuses;
   }
 
-  static Set splitStateParam(Optional<String> state) {
+  static Set<String> splitStateParam(Optional<String> state) {
     if (state.isPresent()) {
       final Iterable<String> chunks = RepairRunService.COMMA_SEPARATED_LIST_SPLITTER.split(state.get());
       for (final String chunk : chunks) {

@@ -14,13 +14,14 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 
+
 import React from "react";
 import moment from "moment";
 import {RowDeleteMixin, RowAbortMixin, StatusUpdateMixin, DeleteStatusMessageMixin, CFsListRender} from "jsx/mixin";
 import ProgressBar from 'react-bootstrap/lib/ProgressBar';
 import Button from 'react-bootstrap/lib/Button';
 import Modal from 'react-bootstrap/lib/Modal';
-import segmentList from 'jsx/segment-list'
+import segmentList from 'jsx/segment-list';
 
 const TableRow = React.createClass({
   mixins: [RowDeleteMixin, StatusUpdateMixin, RowAbortMixin],
@@ -357,6 +358,7 @@ const repairList = React.createClass({
 
     const segmentModal = <SegmentModal show={this.state.modalShow} onHide={modalClose} repairRunId={this.state.repairRunId} height={this.state.height} width={this.state.width}/>;
     if (this.state.repairs !== null) {
+
         rowsRunning = this.state.repairs.sort(compareStartTimeReverse)
             .filter(repair => this.state.currentCluster === "all" || this.state.currentCluster === repair.cluster_name)
             .filter(repair => (repair.state === "RUNNING" || repair.state === "PAUSED" || repair.state === "NOT_STARTED"))
@@ -370,7 +372,7 @@ const repairList = React.createClass({
                 </tbody>
             );
 
-        rowsDone = this.state.repairs.sort(compareEndTimeReverse)
+ /*       rowsDone = this.state.repairs.sort(compareEndTimeReverse)
             .filter(repair => this.state.currentCluster === "all" || this.state.currentCluster === repair.cluster_name)
             .filter(repair => (repair.state !== "RUNNING" && repair.state !== "PAUSED" && repair.state !== "NOT_STARTED"))
             .slice(0, this.state.numberOfElementsToDisplay)
@@ -381,7 +383,7 @@ const repairList = React.createClass({
                               updateStatusSubject={this.props.updateStatusSubject} showSegments={this._displaySegments}/>
                     <TableRowDetails row={repair} key={repair.id + '-details'}/>
                 </tbody>
-            );
+            ); */
     }
 
     const clusterItems = this.state.clusterNames.sort().map(name =>
